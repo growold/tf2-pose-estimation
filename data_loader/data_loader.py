@@ -1,4 +1,4 @@
-# Copyright 2018 Jaewook Kang (jwkang10@gmail.com) All Rights Reserved.
+# Copyright 2018 Felix Liu (felix.fly.lw@gmail.com) All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 from __future__ import absolute_import, division, print_function
 
 import sys
+import os
 
 import tensorflow as tf
 from os.path import join
@@ -67,7 +68,8 @@ class DataLoader(object):
             self.data_dir = None
         self.transpose_input = transpose_input
 
-        json_filename_split = DATASET_DIR.split('/')
+        json_filename_split = os.path.split(
+            DATASET_DIR)  # DATASET_DIR.split('/')
         if self.is_training:
             json_filename = json_filename_split[-1] + '_train.json'
         else:
@@ -190,7 +192,8 @@ class DataLoader(object):
 
         # Prefetch overlaps in-feed with training
         # dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE) # tf.data.experimental.AUTOTUNE have to be upper than 1.13
-        dataset = dataset.prefetch(buffer_size=self.train_config.batch_size * 3)
+        dataset = dataset.prefetch(
+            buffer_size=self.train_config.batch_size * 3)
         # tf.logging.info('[Input_fn] dataset pipeline building complete')
 
         return dataset
