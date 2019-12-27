@@ -1,4 +1,4 @@
-# Copyright 2019 Doyoung Gwak (tucan.dev@gmail.com)
+# Copyright 2019 Felix Liu (felix.fly.lw@gmail.com)
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,7 +13,7 @@
 # ======================
 # -*- coding: utf-8 -*-
 
-# ref: https://github.com/edvardHua/PoseEstimationForMobile/blob/master/training/src/network_mv2_hourglass.py
+# ref: https://github.com/tucan9389/tf2-mobile-pose-estimation/blob/master/hourglass_model.py
 
 import tensorflow as tf
 from tensorflow.keras import models, layers
@@ -24,8 +24,11 @@ from network_base import max_pool, upsample, inverted_bottleneck, separable_conv
 N_KPOINTS = 14
 STAGE_NUM = 3
 
-out_channel_ratio = lambda d: int(d * 1.0)
-up_channel_ratio = lambda d: int(d * 1.0)
+
+def out_channel_ratio(d): return int(d * 1.0)
+
+
+def up_channel_ratio(d): return int(d * 1.0)
 
 
 class HourglassModelBuilder():
@@ -36,9 +39,11 @@ class HourglassModelBuilder():
 
     def build_model(self, inputs=None, trainable=True):
         if inputs != None:
-            inputs = tf.keras.Input(tensor=inputs)  # input must be (256, 256, 3)
+            # input must be (256, 256, 3)
+            inputs = tf.keras.Input(tensor=inputs)
         else:
-            inputs = tf.keras.Input(shape=(128, 128, 3))  # Returns a placeholder tensor
+            # Returns a placeholder tensor
+            inputs = tf.keras.Input(shape=(128, 128, 3))
 
         predictions, l2s = self.build_network(inputs, trainable=trainable)
 
@@ -46,28 +51,41 @@ class HourglassModelBuilder():
 
     def hourglass_module(self, inp, stage_nums, intermediate_heatmap_layers):
         if stage_nums > 0:
-            down_sample = max_pool(inp, 2, 2, 2, 2, name="hourglass_downsample_%d" % stage_nums)
+            down_sample = max_pool(
+                inp, 2, 2, 2, 2, name="hourglass_downsample_%d" % stage_nums)
 
-            tower = inverted_bottleneck(down_sample, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            block_front = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                down_sample, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            block_front = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
 
             stage_nums -= 1
-            block_mid = self.hourglass_module(block_front, stage_nums, intermediate_heatmap_layers)
+            block_mid = self.hourglass_module(
+                block_front, stage_nums, intermediate_heatmap_layers)
             block_back = inverted_bottleneck(
                 block_mid, up_channel_ratio(6), N_KPOINTS,
                 0, 3, scope="hourglass_back_%d" % stage_nums)
 
-            up_sample = upsample(block_back, 2, "hourglass_upsample_%d" % stage_nums)
+            up_sample = upsample(
+                block_back, 2, "hourglass_upsample_%d" % stage_nums)
 
             # jump layer
-            tower = inverted_bottleneck(inp, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-            branch_jump = inverted_bottleneck(tower, up_channel_ratio(6), N_KPOINTS, 0, 3)
+            tower = inverted_bottleneck(
+                inp, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            tower = inverted_bottleneck(
+                tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+            branch_jump = inverted_bottleneck(
+                tower, up_channel_ratio(6), N_KPOINTS, 0, 3)
 
             curr_hg_out = layers.Add()([up_sample, branch_jump])
 
@@ -93,21 +111,28 @@ class HourglassModelBuilder():
         tower = inverted_bottleneck(tower, 1, out_channel_ratio(16), 0, 3)
 
         # 64, 56
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 1, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+        tower = inverted_bottleneck(
+            tower, up_channel_ratio(6), out_channel_ratio(24), 1, 3)
+        tower = inverted_bottleneck(
+            tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+        tower = inverted_bottleneck(
+            tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+        tower = inverted_bottleneck(
+            tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+        tower = inverted_bottleneck(
+            tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
 
         net_h_w = int(tower.shape[1])
         # build network recursively
-        hg_out = self.hourglass_module(tower, STAGE_NUM, intermediate_heatmap_layers)
+        hg_out = self.hourglass_module(
+            tower, STAGE_NUM, intermediate_heatmap_layers)
 
         for index, l2 in enumerate(intermediate_heatmap_layers):
             l2_w_h = int(l2.shape[1])
             if l2_w_h == net_h_w:
                 continue
             scale = net_h_w // l2_w_h
-            intermediate_heatmap_layers[index] = upsample(l2, scale, name="upsample_for_loss_%d" % index)
+            intermediate_heatmap_layers[index] = upsample(
+                l2, scale, name="upsample_for_loss_%d" % index)
         merged_layer = tf.keras.layers.Average()(intermediate_heatmap_layers)
         return hg_out, merged_layer
