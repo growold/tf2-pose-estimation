@@ -1,4 +1,4 @@
-# Copyright 2019 Doyoung Gwak (tucan.dev@gmail.com)
+# Copyright 2019 Felix (felix.fly.lw@gmail.com)
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -17,9 +17,7 @@ from __future__ import absolute_import, division, print_function
 import os
 
 import tensorflow as tf
-# from keras import layers
 from tensorflow.keras import layers
-# import keras
 import numpy as np
 import sys
 from os import getcwd
@@ -54,19 +52,6 @@ def main():
     sys.path.insert(0, TF_MODULE_DIR)
     sys.path.insert(0, EXPORT_DIR)
     sys.path.insert(0, COCO_DATALOAD_DIR)
-
-    # # configuration file
-    # config = configparser.ConfigParser()
-    #
-    # config_file = "mv2_cpm.cfg"
-    # if os.path.exists(config_file):
-    #     config.read(config_file)
-
-    # params = {}
-    # for _ in config.options("Train"):
-    #     params[_] = eval(config.get("Train", _))
-    #
-    # os.environ['CUDA_VISIBLE_DEVICES'] = params['visible_devices']
 
     train_config = TrainConfig()
     model_config = ModelConfig(setuplog_dir=train_config.setuplog_dir)
@@ -143,8 +128,7 @@ def main():
     print("model name:", output_name)
     print("\n")
 
-    batch_size = 6
-    images, labels = dataloader_valid.get_images(22, batch_size)
+    images, labels = dataloader_valid.get_images(22, batch_size=6)
 
     # --------------------------------------------------------------------------------------------------------------------
     # output model file(.hdf5)
@@ -162,11 +146,6 @@ def main():
     # ==================== train! ====================
     # ================================================
 
-    # model.fit(data,
-    #           epochs=100,
-    #           steps_per_epoch=100,
-    #           callbacks=[check_pointer, tensorboard])
-
     model.fit(data,  # dataset_train_one_shot_iterator
               epochs=train_config.epochs,
               steps_per_epoch=train_config.steps_per_epoch,
@@ -176,14 +155,6 @@ def main():
                   check_pointer_callback,
                   tensorboard_callback,
                   img_tensorboard_callback])
-
-    # ================================================
-    # =================== evaluate ===================
-    # ================================================
-
-    #
-    # TODO
-    #
 
 
 if __name__ == '__main__':

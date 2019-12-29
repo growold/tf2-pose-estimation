@@ -1,4 +1,4 @@
-# Copyright 2019 Doyoung Gwak (tucan.dev@gmail.com)
+# Copyright 2019 Felix Liu (felix.fly.lw@gmail.com)
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -17,9 +17,7 @@
 
 import tensorflow as tf
 from tensorflow.keras import models, layers
-# from keras import models, layers
-# import keras
-from network_base import max_pool, upsample, inverted_bottleneck, separable_conv, convb, is_trainable
+from network_base import max_pool, upsample, inverted_bottleneck, is_trainable
 
 N_KPOINTS = 14
 STAGE_NUM = 3
@@ -86,18 +84,16 @@ class HourglassModelBuilder():
 
         intermediate_heatmap_layers = []
 
-        tower = convb(input, 3, 3, out_channel_ratio(16), 2, name="Conv2d_0")
-
-        # 128, 112
-        tower = inverted_bottleneck(tower, 1, out_channel_ratio(16), 0, 3)
-        tower = inverted_bottleneck(tower, 1, out_channel_ratio(16), 0, 3)
-
-        # 64, 56
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 1, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
-        tower = inverted_bottleneck(tower, up_channel_ratio(6), out_channel_ratio(24), 0, 3)
+        tower = layers.Conv2D(out_channel_ratio(64),
+            kernel_size=[3, 3],
+            strides=(2, 2),
+            activation=None,
+            padding='same'
+        )(input)
+        tower = layers.BatchNormalization()(tower)
+        tower = layers.ReLU()(tower)
+        
+        tower = inverted_bottleneck(tower, 1, out_channel_ratio(16), 1, 3)
 
         net_h_w = int(tower.shape[1])
         # build network recursively
