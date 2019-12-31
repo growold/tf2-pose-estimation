@@ -39,7 +39,7 @@ from config.train_config import TrainConfig
 
 from data_loader.data_loader import DataLoader
 
-from hourglass_model import HourglassModelBuilder
+from models.hourglass_model import HourglassModelBuilder
 from models.vgg_19_model import VGG19_Model
 from models.hourglass_model_v2 import HourglassModelBuilderV2
 
