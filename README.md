@@ -143,6 +143,7 @@ python convert_to_tflite.py
 
 - ~~Save model(`.hdf5` or `.ckpt`)~~
 - ~~Convert the model(`.hdf5` or `.ckpt`) to TFLite model(`.tflite`)~~
+- Add a demo to check if the model is ok to use.
 - Run the model on Android
 - Run the model on iOS
 - Make DEMO gif running on mobile device

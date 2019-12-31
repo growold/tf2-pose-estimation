@@ -9,3 +9,4 @@ opencv-python
 tensorpack
 six
 coremltools
+scipy
