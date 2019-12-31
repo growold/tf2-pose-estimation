@@ -34,41 +34,34 @@ def upsample(inputs, factor, name):
 
 
 def inverted_bottleneck(inputs, up_channel_rate, channels, subsample, k_s=3, scope=""):
-    # with tf.variable_scope("inverted_bottleneck_%s" % scope):
+    if inputs.shape[-1] == channels:
+        origin_inputs = inputs
+    else:
+        origin_inputs = layers.SeparableConv2D(
+            channels,
+            kernel_size=1,
+            activation='relu',
+            padding="same"
+        )(inputs)
 
-    stride = 2 if subsample else 1
-
-    tower = layers.Conv2D(filters=up_channel_rate * inputs.shape[-1],
-                          kernel_size=[1, 1],
-                          kernel_initializer=tf.keras.initializers.glorot_normal(),
-                          bias_initializer=tf.keras.initializers.Zeros(),
-                          activation=None,
+    tower = layers.Conv2D(filters=channels // 2,
+                          kernel_size=(1, 1),
+                          activation='relu',
                           padding='same')(inputs)
     tower = layers.BatchNormalization()(tower)
-    tower = layers.ReLU()(tower)
 
     tower = layers.SeparableConv2D(filters=channels // 2,
-                                   strides=stride,
-                                   depth_multiplier=1,
                                    kernel_size=k_s,
-                                   depthwise_initializer=tf.keras.initializers.glorot_normal(),
-                                   pointwise_initializer=tf.keras.initializers.glorot_normal(),
-                                   bias_initializer=None,
-                                   padding='same',
-                                   depthwise_regularizer=tf.keras.regularizers.l2(0.00004),
-                                   pointwise_regularizer=tf.keras.regularizers.l2(0.00004))(tower)
+                                   activation='relu',
+                                   padding='same')(tower)
     tower = layers.BatchNormalization()(tower)
 
     tower = layers.Conv2D(filters=channels,
-                          kernel_size=[1, 1],
-                          kernel_initializer=tf.keras.initializers.glorot_normal(),
-                          bias_initializer=tf.keras.initializers.Zeros(),
-                          activation=None,
+                          kernel_size=(1, 1),
+                          activation='relu',
                           padding='same')(tower)
     tower = layers.BatchNormalization()(tower)
-    output = layers.ReLU()(tower)
 
-    if inputs.shape[-1] == channels:
-        output = layers.Add()([inputs, output])
+    output = layers.Add()([origin_inputs, output])
 
     return output

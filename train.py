@@ -26,6 +26,7 @@ from datetime import datetime
 from config.path_manager import PROJ_HOME
 
 import configparser
+import argparse
 
 from config.path_manager import TF_MODULE_DIR
 from config.path_manager import EXPORT_DIR
@@ -39,6 +40,8 @@ from config.train_config import TrainConfig
 from data_loader.data_loader import DataLoader
 
 from hourglass_model import HourglassModelBuilder
+from models.vgg_19_model import VGG19_Model
+from models.hourglass_model_v2 import HourglassModelBuilderV2
 
 from callbacks_model import get_check_pointer_callback
 from callbacks_model import get_tensorboard_callback
@@ -52,6 +55,11 @@ def main():
     sys.path.insert(0, TF_MODULE_DIR)
     sys.path.insert(0, EXPORT_DIR)
     sys.path.insert(0, COCO_DATALOAD_DIR)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", help="choose a model to train, default is HourglassModel, available: vgg19/hourglass_v2")
+
+    args = parser.parse_args()
 
     train_config = TrainConfig()
     model_config = ModelConfig(setuplog_dir=train_config.setuplog_dir)
@@ -86,7 +94,12 @@ def main():
     # ============== configure model =================
     # ================================================
 
-    model_builder = HourglassModelBuilder()
+    if args.model == 'vgg19':
+        model_builder = VGG19_Model()
+    elif args.model == 'hourglass_v2':
+        model_builder = HourglassModelBuilderV2()
+    else:
+        model_builder = HourglassModelBuilder()
     model_builder.build_model()
     # model_builder.build_model(inputs=inputs)
 

@@ -2,6 +2,8 @@
 
 > This repository is forked from [tucan9389/tf2-mobile-pose-estimation](https://github.com/tucan9389/tf2-mobile-pose-estimation) when the original repository doesn't work and the author have no plan to update it, so i fork it and do some research for study purposes.
 
+> Even though I made the orginal model worked. But the final result was not as good as I expected. So I import another model from [yuanyuanli85/Stacked_Hourglass_Network_Keras](https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras). This model can train a better model than previous one. Model details can be found in the file models/hourglass_model_v2.py.
+
 This repository currently implemented the Hourglass model using TensorFlow 2.0 (and Keras API). Instead of normal convolution, inverted residuals (also known as Mobilenet V2) module has been used inside the model for **real-time** inference.
 
 ## Table of contents
@@ -49,6 +51,7 @@ Start the environment.
 source activate {env_name}
 # in my case
 # source activate mpe-env-tf2-alpha0
+# the newest conda version may use command(on my mac): conda activate {env_name} ## from 2019-12-31
 ```
 
 ### Install the requirements (~1 min)
@@ -78,6 +81,8 @@ tensorboard --logdir="./outputs/logs"
 ## Results
 
 ### Loss
+
+- hourglass_model.py: loss reduced to around 0.0030, it's working, but not good enough.
 
 ![tensorboard-1-190403](resources/tensorboard_loss-190404.png)
 
@@ -141,7 +146,7 @@ python convert_to_tflite.py
 - Run the model on Android
 - Run the model on iOS
 - Make DEMO gif running on mobile device
-- multi-person detection
+- multi-person estimation
 
 ## Acknowledgements
 

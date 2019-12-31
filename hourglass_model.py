@@ -95,6 +95,8 @@ class HourglassModelBuilder():
         
         tower = inverted_bottleneck(tower, 1, out_channel_ratio(16), 1, 3)
 
+        tower = max_pool(tower, 2, 2, 2, 2, name='max_pool_0')
+
         net_h_w = int(tower.shape[1])
         # build network recursively
         hg_out = self.hourglass_module(tower, STAGE_NUM, intermediate_heatmap_layers)
