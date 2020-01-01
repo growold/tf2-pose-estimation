@@ -81,7 +81,7 @@ def main():
             use_bfloat16=False) for is_training in [True, False]]
 
     dataset_train = dataloader_train.input_fn()
-    # dataset_valid   = dataloader_valid.input_fn()
+    dataset_valid = dataloader_valid.input_fn()
 
     data = dataset_train.repeat()
     # iterator = data.make_one_shot_iterator()
@@ -107,7 +107,8 @@ def main():
     model.summary()
 
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
-                  loss=tf.keras.losses.mean_squared_error)  # ,
+                  loss=tf.keras.losses.mean_squared_error,
+                  metrics=['accuracy', 'mse'])  # ,
     # metrics=['mse'])
     # target_tensors=[targets])#tf.metrics.Accuracy
 
@@ -162,8 +163,8 @@ def main():
     model.fit(data,  # dataset_train_one_shot_iterator
               epochs=train_config.epochs,
               steps_per_epoch=train_config.steps_per_epoch,
-              # validation_steps=32,
-              # validation_data=dataset_valid,
+              validation_steps=32,
+              validation_data=dataset_valid,
               callbacks=[
                   check_pointer_callback,
                   tensorboard_callback,

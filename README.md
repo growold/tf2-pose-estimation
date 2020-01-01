@@ -71,6 +71,10 @@ In order to use the project you have to:
 ```shell
 python train.py
 ```
+or run HourglassModel version 2 using:
+```shell
+python train.py --model=hourglass_v2
+```
 
 3. Monitoring with TensorBoard:
 
@@ -83,12 +87,9 @@ tensorboard --logdir="./outputs/logs"
 ### Loss
 
 - hourglass_model.py: loss reduced to around 0.0030, it's working, but not good enough.
+- hourglass_model_v2.py: loss reduced to around 0.0016, this model performs better.
 
-![tensorboard-1-190403](resources/tensorboard_loss-190404.png)
-
-### Accuracy
-
-![tensorboard-1-190403](resources/tensorboard_accuracy-190404.png)
+![pred-img-01](resources/tensorboard_img_pred_20200101.png)
 
 ## Converting To Mobile Model
 
@@ -109,9 +110,6 @@ python convert_to_tflite.py
 
 4. And then, you can find the `.tflite` model on `{PROJECT_PATH}/outputs/models/tflite/{model_file_name}.tflite`.
 
-### Core ML (Preparing...)
-
-> Related issue: [https://github.com/tucan9389/tf2-mobile-pose-estimation/issues/13](https://github.com/tucan9389/tf2-mobile-pose-estimation/issues/13)
 
 ## Details
 
@@ -122,12 +120,14 @@ python convert_to_tflite.py
 ├── data_loader.py
 ├── data_augment.py
 ├── data_prepare.py
-├── hourglass_model.py
 ├── model_config.py
 ├── network_base.py
 ├── path_manage.py
 ├── train_config.py
 ├── requirements.txt
+├── models
+|   ├── hourglass_model.py 
+|   └── hourglass_model_v2.py
 ├── datasets            - this folder contain the datasets of the project.
 |   └── ai_challenger
 |       ├── ai_challenger_train.json
