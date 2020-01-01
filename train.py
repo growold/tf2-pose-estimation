@@ -1,4 +1,4 @@
-# Copyright 2019 Doyoung Gwak (tucan.dev@gmail.com)
+# Copyright 2019 Felix (felix.fly.lw@gmail.com)
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -17,9 +17,7 @@ from __future__ import absolute_import, division, print_function
 import os
 
 import tensorflow as tf
-# from keras import layers
 from tensorflow.keras import layers
-# import keras
 import numpy as np
 import sys
 from os import getcwd
@@ -28,6 +26,7 @@ from datetime import datetime
 from config.path_manager import PROJ_HOME
 
 import configparser
+import argparse
 
 from config.path_manager import TF_MODULE_DIR
 from config.path_manager import EXPORT_DIR
@@ -40,7 +39,9 @@ from config.train_config import TrainConfig
 
 from data_loader.data_loader import DataLoader
 
-from hourglass_model import HourglassModelBuilder
+from models.hourglass_model import HourglassModelBuilder
+from models.vgg_19_model import VGG19_Model
+from models.hourglass_model_v2 import HourglassModelBuilderV2
 
 from callbacks_model import get_check_pointer_callback
 from callbacks_model import get_tensorboard_callback
@@ -55,18 +56,10 @@ def main():
     sys.path.insert(0, EXPORT_DIR)
     sys.path.insert(0, COCO_DATALOAD_DIR)
 
-    # # configuration file
-    # config = configparser.ConfigParser()
-    #
-    # config_file = "mv2_cpm.cfg"
-    # if os.path.exists(config_file):
-    #     config.read(config_file)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", help="choose a model to train, default is HourglassModel, available: vgg19/hourglass_v2")
 
-    # params = {}
-    # for _ in config.options("Train"):
-    #     params[_] = eval(config.get("Train", _))
-    #
-    # os.environ['CUDA_VISIBLE_DEVICES'] = params['visible_devices']
+    args = parser.parse_args()
 
     train_config = TrainConfig()
     model_config = ModelConfig(setuplog_dir=train_config.setuplog_dir)
@@ -88,7 +81,7 @@ def main():
             use_bfloat16=False) for is_training in [True, False]]
 
     dataset_train = dataloader_train.input_fn()
-    # dataset_valid   = dataloader_valid.input_fn()
+    dataset_valid = dataloader_valid.input_fn()
 
     data = dataset_train.repeat()
     # iterator = data.make_one_shot_iterator()
@@ -101,7 +94,12 @@ def main():
     # ============== configure model =================
     # ================================================
 
-    model_builder = HourglassModelBuilder()
+    if args.model == 'vgg19':
+        model_builder = VGG19_Model()
+    elif args.model == 'hourglass_v2':
+        model_builder = HourglassModelBuilderV2()
+    else:
+        model_builder = HourglassModelBuilder()
     model_builder.build_model()
     # model_builder.build_model(inputs=inputs)
 
@@ -109,7 +107,8 @@ def main():
     model.summary()
 
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
-                  loss=tf.keras.losses.mean_squared_error)  # ,
+                  loss=tf.keras.losses.mean_squared_error,
+                  metrics=['accuracy', 'mse'])  # ,
     # metrics=['mse'])
     # target_tensors=[targets])#tf.metrics.Accuracy
 
@@ -143,8 +142,7 @@ def main():
     print("model name:", output_name)
     print("\n")
 
-    batch_size = 6
-    images, labels = dataloader_valid.get_images(22, batch_size)
+    images, labels = dataloader_valid.get_images(22, batch_size=6)
 
     # --------------------------------------------------------------------------------------------------------------------
     # output model file(.hdf5)
@@ -162,28 +160,15 @@ def main():
     # ==================== train! ====================
     # ================================================
 
-    # model.fit(data,
-    #           epochs=100,
-    #           steps_per_epoch=100,
-    #           callbacks=[check_pointer, tensorboard])
-
     model.fit(data,  # dataset_train_one_shot_iterator
               epochs=train_config.epochs,
               steps_per_epoch=train_config.steps_per_epoch,
-              # validation_steps=32,
-              # validation_data=dataset_valid,
+              validation_steps=32,
+              validation_data=dataset_valid,
               callbacks=[
                   check_pointer_callback,
                   tensorboard_callback,
                   img_tensorboard_callback])
-
-    # ================================================
-    # =================== evaluate ===================
-    # ================================================
-
-    #
-    # TODO
-    #
 
 
 if __name__ == '__main__':

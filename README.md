@@ -2,6 +2,8 @@
 
 > This repository is forked from [tucan9389/tf2-mobile-pose-estimation](https://github.com/tucan9389/tf2-mobile-pose-estimation) when the original repository doesn't work and the author have no plan to update it, so i fork it and do some research for study purposes.
 
+> Even though I made the orginal model worked. But the final result was not as good as I expected. So I import another model from [yuanyuanli85/Stacked_Hourglass_Network_Keras](https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras). This model can train a better model than previous one. Model details can be found in the file models/hourglass_model_v2.py.
+
 This repository currently implemented the Hourglass model using TensorFlow 2.0 (and Keras API). Instead of normal convolution, inverted residuals (also known as Mobilenet V2) module has been used inside the model for **real-time** inference.
 
 ## Table of contents
@@ -49,6 +51,7 @@ Start the environment.
 source activate {env_name}
 # in my case
 # source activate mpe-env-tf2-alpha0
+# the newest conda version may use command(on my mac): conda activate {env_name} ## from 2019-12-31
 ```
 
 ### Install the requirements (~1 min)
@@ -68,6 +71,10 @@ In order to use the project you have to:
 ```shell
 python train.py
 ```
+or run HourglassModel version 2 using:
+```shell
+python train.py --model=hourglass_v2
+```
 
 3. Monitoring with TensorBoard:
 
@@ -79,11 +86,10 @@ tensorboard --logdir="./outputs/logs"
 
 ### Loss
 
-![tensorboard-1-190403](resources/tensorboard_loss-190404.png)
+- hourglass_model.py: loss reduced to around 0.0030, it's working, but not good enough.
+- hourglass_model_v2.py: loss reduced to around 0.0016, this model performs better.
 
-### Accuracy
-
-![tensorboard-1-190403](resources/tensorboard_accuracy-190404.png)
+![pred-img-01](resources/tensorboard_img_pred_20200101.png)
 
 ## Converting To Mobile Model
 
@@ -104,9 +110,6 @@ python convert_to_tflite.py
 
 4. And then, you can find the `.tflite` model on `{PROJECT_PATH}/outputs/models/tflite/{model_file_name}.tflite`.
 
-### Core ML (Preparing...)
-
-> Related issue: [https://github.com/tucan9389/tf2-mobile-pose-estimation/issues/13](https://github.com/tucan9389/tf2-mobile-pose-estimation/issues/13)
 
 ## Details
 
@@ -117,12 +120,14 @@ python convert_to_tflite.py
 ├── data_loader.py
 ├── data_augment.py
 ├── data_prepare.py
-├── hourglass_model.py
 ├── model_config.py
 ├── network_base.py
 ├── path_manage.py
 ├── train_config.py
 ├── requirements.txt
+├── models
+|   ├── hourglass_model.py 
+|   └── hourglass_model_v2.py
 ├── datasets            - this folder contain the datasets of the project.
 |   └── ai_challenger
 |       ├── ai_challenger_train.json
@@ -138,10 +143,11 @@ python convert_to_tflite.py
 
 - ~~Save model(`.hdf5` or `.ckpt`)~~
 - ~~Convert the model(`.hdf5` or `.ckpt`) to TFLite model(`.tflite`)~~
+- Add a demo to check if the model is ok to use.
 - Run the model on Android
 - Run the model on iOS
 - Make DEMO gif running on mobile device
-- multi-person detection
+- multi-person estimation
 
 ## Acknowledgements
 

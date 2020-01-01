@@ -28,7 +28,7 @@ from subprocess import check_output
 class TrainConfig(object):
 
     def __init__(self):
-        self.epochs = 100
+        self.epochs = 300
         self.epochs_finetuning = 1000
         self.steps_per_epoch = 100
         self.steps_per_epoch_finetuning = 100
