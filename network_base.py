@@ -18,6 +18,7 @@ from tensorflow.keras import layers, regularizers, activations
 
 _trainable = True
 
+
 def is_trainable(trainable=True):
     global _trainable
     _trainable = trainable
@@ -62,6 +63,6 @@ def inverted_bottleneck(inputs, up_channel_rate, channels, subsample, k_s=3, sco
                           padding='same')(tower)
     tower = layers.BatchNormalization()(tower)
 
-    output = layers.Add()([origin_inputs, output])
+    output = layers.Add()([origin_inputs, tower])
 
     return output
