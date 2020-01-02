@@ -71,7 +71,9 @@ In order to use the project you have to:
 ```shell
 python train.py
 ```
+
 or run HourglassModel version 2 using:
+
 ```shell
 python train.py --model=hourglass_v2
 ```
@@ -84,12 +86,19 @@ tensorboard --logdir="./outputs/logs"
 
 ## Results
 
-### Loss
+### hourglass_model.py
 
-- hourglass_model.py: loss reduced to around 0.0030, it's working, but not good enough.
-- hourglass_model_v2.py: loss reduced to around 0.0016, this model performs better.
+- loss reduced to around 0.0030, it's working, but not good enough.
 
-![pred-img-01](resources/tensorboard_img_pred_20200101.png)
+![pred-img-01](resources/tensorboard_v1_img_pred_20200102.png)
+![loss-img-01](resources/tensorboard_v1_loss_20200102.png)
+![acc-img-01](resources/tensorboard_v1_acc_20200102.png)
+
+### hourglass_model_v2.py
+
+- loss reduced to around 0.0016, this model performs better.
+
+![pred-img-02](resources/tensorboard_v2_img_pred_20200101.png)
 
 ## Converting To Mobile Model
 
@@ -110,7 +119,6 @@ python convert_to_tflite.py
 
 4. And then, you can find the `.tflite` model on `{PROJECT_PATH}/outputs/models/tflite/{model_file_name}.tflite`.
 
-
 ## Details
 
 ### Folder Structure
@@ -126,7 +134,7 @@ python convert_to_tflite.py
 ├── train_config.py
 ├── requirements.txt
 ├── models
-|   ├── hourglass_model.py 
+|   ├── hourglass_model.py
 |   └── hourglass_model_v2.py
 ├── datasets            - this folder contain the datasets of the project.
 |   └── ai_challenger
