@@ -99,6 +99,8 @@ tensorboard --logdir="./outputs/logs"
 - loss reduced to around 0.0016, this model performs better.
 
 ![pred-img-02](resources/tensorboard_v2_img_pred_20200101.png)
+![loss-img-02](resources/tensorboard_v2_loss_20200102.png)
+![acc-img-02](resources/tensorboard_v2_acc_20200102.png)
 
 ## Converting To Mobile Model
 
