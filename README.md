@@ -84,6 +84,12 @@ python train.py --model=hourglass_v2
 tensorboard --logdir="./outputs/logs"
 ```
 
+4. Test model training result(change model_name in demo.py):
+```shell
+python demo.py
+```
+![demo-01](resources/demo_result.png)
+
 ## Results
 
 ### hourglass_model.py
