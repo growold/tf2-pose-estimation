@@ -21,7 +21,6 @@ import tensorflow as tf
 # import tensorflow.contrib.slim as slim
 import json
 
-
 class ModelConfig(object):
 
     def __init__(self, setuplog_dir):

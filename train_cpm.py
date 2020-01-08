@@ -87,7 +87,8 @@ def main():
     data = dataset_train.repeat()
     # iterator = data.make_one_shot_iterator()
     # inputs, targets = iterator.get_next()
-    # print(inputs)
+    # print(inputs['input_1'])
+    # print(inputs['input_2'])
     # print(targets)
     # data = dataset_train
 
@@ -156,7 +157,7 @@ def main():
     # ==================== train! ====================
     # ================================================
 
-    model.fit(data,  # dataset_train_one_shot_iterator
+    model.fit_generator(data,  # dataset_train_one_shot_iterator
               epochs=train_config.epochs,
               steps_per_epoch=train_config.steps_per_epoch,
               validation_steps=32,

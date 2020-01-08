@@ -16,15 +16,17 @@
 import tensorflow as tf
 from tensorflow.keras import models, layers
 
+from data_loader_cpm.model_config import ModelConfig
 from network_base import max_pool, upsample, inverted_bottleneck, is_trainable
 
 N_KPOINTS = 14
+model_config = ModelConfig(setuplog_dir=None)
 
 def out_channel_ratio(d): return int(d * 1.0)
 
 def up_channel_ratio(d): return int(d * 1.0)
 
-class HourglassModelBuilderV2():
+class ConvolutionalPoseMachines():
 
     def __init__(self):
         # self.build_model()
@@ -33,43 +35,47 @@ class HourglassModelBuilderV2():
     def build_model(self, inputs=None, trainable=True):
         if inputs != None:
             # input must be (256, 256, 3)
-            inputs = tf.keras.Input(tensor=inputs)
+            inputs = tf.keras.Input(tensor=inputs, name='input_1')
         else:
             # Returns a placeholder tensor
-            inputs = tf.keras.Input(shape=(128, 128, 3))
+            inputs = tf.keras.Input(shape=(model_config.input_size, model_config.input_size, 3), name='input_1')
 
-        predictions = self.build_network(inputs, trainable=trainable)
+        input_group = [inputs, tf.keras.Input(shape=(model_config.input_size, model_config.input_size, 1), name='input_2')]
 
-        self.model = tf.keras.Model(inputs=inputs, outputs=predictions)
+        predictions = self.build_network(input_group, trainable=trainable)
+
+        self.model = tf.keras.Model(inputs=input_group, outputs=predictions)
 
     def build_network(self, inputs, trainable):
         is_trainable(trainable)
+        # input: (368, 368, 3)
+        # centermap: (368, 368, 1)
         input, centermap = inputs
-        # input : (batch_size, 128, 128, 3)
-        center_map = layers.AveragePooling2D(pool_size=9, strides=8, padding='same')(centermap)
+        print('center map shape', centermap.shape)
+        center_map = layers.AveragePooling2D(pool_size=9, strides=8, padding='same', name='centermap')(centermap)
 
         ##### stage 1 #####
-        x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu')(input)
-        x = layers.MaxPool2D(pool_size=3, strides=2)(x)
-        x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu')(x)
-        x = layers.MaxPool2D(pool_size=3, strides=2)(x)
-        x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu')(x)
-        x = layers.MaxPool2D(pool_size=3, strides=2)(x)
+        x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu', name='stage_1_conv_1')(input)  # (368, 368, 128)
+        x = layers.MaxPool2D(pool_size=3, strides=2, padding='same', name='stage_1_pool_1')(x)  # (183, 183, 128)
+        x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu', name='stage_1_conv_2')(x)  # (183, 183, 128)
+        x = layers.MaxPool2D(pool_size=3, strides=2, padding='same', name='stage_1_pool_2')(x)  # (91, 91, 128)
+        x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu', name='stage_1_conv_3')(x) # (91, 91, 128)
+        x = layers.MaxPool2D(pool_size=3, strides=2, padding='same', name='stage_1_pool_3')(x)  # (45, 45, 128)
 
-        x = layers.Conv2D(32, kernel_size=5, strides=1, padding='same', activation='relu')(x)
-        x = layers.Conv2D(512, kernel_size=5, strides=1, padding='same', activation='relu')(x)
-        x = layers.Conv2D(512, kernel_size=5, strides=1, padding='same', activation='relu')(x)
+        x = layers.Conv2D(32, kernel_size=5, strides=1, padding='same', activation='relu', name='stage_1_conv_4')(x)  # (45, 45, 32)
+        x = layers.Conv2D(512, kernel_size=5, strides=1, padding='same', activation='relu', name='stage_1_conv_5')(x)  # (45, 45, 512)
+        x = layers.Conv2D(512, kernel_size=5, strides=1, padding='same', activation='relu', name='stage_1_conv_6')(x)  # (45, 45, 512)
 
-        stage1_map = layers.Conv2D(N_KPOINTS + 1, kernel_size=1, strides=1, padding='same')(x)
+        stage1_map = layers.Conv2D(N_KPOINTS, kernel_size=1, strides=1, padding='same', name='output_1')(x)
         ##### stage 1 end #####
 
         ##### middle #####
         x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu')(input)
-        x = layers.MaxPool2D(kernel_size=3, strides=2)(x)
+        x = layers.MaxPool2D(pool_size=3, strides=2, padding='same')(x)
         x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu')(x)
-        x = layers.MaxPool2D(kernel_size=3, strides=2)(x)
+        x = layers.MaxPool2D(pool_size=3, strides=2, padding='same')(x)
         x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same', activation='relu')(x)
-        middle_map = layers.MaxPool2D(kernel_size=3, strides=2)(x)
+        middle_map = layers.MaxPool2D(pool_size=3, strides=2, padding='same')(x)
         ##### middle end #####
         
         ##### stage 2 #####
@@ -79,7 +85,7 @@ class HourglassModelBuilderV2():
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=1, strides=1, padding='valid', activation='relu')(x)
-        stage2_map = layers.Conv2D(N_KPOINTS + 1, kernel_size=1)(x)
+        stage2_map = layers.Conv2D(N_KPOINTS, kernel_size=1, name='output_2')(x)
         ##### stage 2 end #####
 
         ##### stage 3 #####
@@ -89,7 +95,7 @@ class HourglassModelBuilderV2():
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=1, strides=1, padding='valid', activation='relu')(x)
-        stage3_map = layers.Conv2D(N_KPOINTS + 1, kernel_size=1)(x)
+        stage3_map = layers.Conv2D(N_KPOINTS, kernel_size=1, name='output_3')(x)
         ##### stage 3 end #####
 
         ##### stage 4 #####
@@ -99,7 +105,7 @@ class HourglassModelBuilderV2():
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=1, strides=1, padding='valid', activation='relu')(x)
-        stage4_map = layers.Conv2D(N_KPOINTS + 1, kernel_size=1)(x)
+        stage4_map = layers.Conv2D(N_KPOINTS, kernel_size=1, name='output_4')(x)
         ##### stage 4 end #####
 
         ##### stage 5 #####
@@ -109,7 +115,7 @@ class HourglassModelBuilderV2():
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=1, strides=1, padding='valid', activation='relu')(x)
-        stage5_map = layers.Conv2D(N_KPOINTS + 1, kernel_size=1)(x)
+        stage5_map = layers.Conv2D(N_KPOINTS, kernel_size=1, name='output_5')(x)
         ##### stage 5 end #####
 
         ##### stage 6 #####
@@ -119,7 +125,7 @@ class HourglassModelBuilderV2():
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=11, strides=1, padding='same', activation='relu')(x)
         x = layers.Conv2D(128, kernel_size=1, strides=1, padding='valid', activation='relu')(x)
-        stage6_map = layers.Conv2D(N_KPOINTS + 1, kernel_size=1)(x)
+        stage6_map = layers.Conv2D(N_KPOINTS, kernel_size=1, name='output_6')(x)
         ##### stage 6 end #####
 
         return stage1_map, stage2_map, stage3_map, stage4_map, stage5_map, stage6_map

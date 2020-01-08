@@ -13,13 +13,13 @@ import numpy as np
 from tensorpack.dataflow.imgaug.geometry import RotationAndCropValid
 from enum import Enum
 
-from model_config import ModelConfig
+from data_loader_cpm.model_config import ModelConfig
 
-model_config = ModelConfig(setuplog_dir=None)
+model_cfg = ModelConfig(setuplog_dir=None)
 
-_network_w = int(model_config.input_size)
+_network_w = int(model_cfg.input_size)
 _network_h = _network_w
-_scale = int(model_config.input_size / model_config.output_size)
+_scale = int(model_cfg.input_size / model_cfg.output_size)
 
 class CocoPart(Enum):
     Top = 0
@@ -278,7 +278,7 @@ def pose_to_img(meta_l):
     # return meta_l.img.astype(np.float32), \
     #        meta_l.get_heatmap(target_size=(_network_w // _scale, _network_h // _scale)).astype(np.float32)
     return meta_l.img.astype(np.float32), \
-           meta_l.get_heatmap(target_size=(model_config.output_size, model_config.output_size)).astype(np.float32)
+           meta_l.get_heatmap(target_size=(model_cfg.output_size, model_cfg.output_size)).astype(np.float32)
     # return meta_l.img.astype(np.float32), \
     #        meta_l.get_heatmap(target_size=(model_config.output_size, model_config.output_size)).astype(np.float32)
 
@@ -306,6 +306,9 @@ def preprocess_image(img_meta_data, preproc_config):
     images, labels = pose_to_img(img_meta_data)
 
     centermap = np.zeros((_network_h, _network_w, 1), dtype=np.float32)
+    center_map = guassian_kernel(size_h=_network_h, size_w=_network_w, center_x=img_meta_data.center[0], center_y=img_meta_data.center[1], sigma=img_meta_data.sigma)
+    center_map[center_map > 1] = 1
+    center_map[center_map < 0.0099] = 0
+    centermap[:, :, 0] = center_map
 
-
-    return images, labels
+    return images, labels, centermap

@@ -34,6 +34,7 @@ class CocoMetadata:
         self.width = int(img_meta['width'])
 
         joint_list = []
+        points = []
         for ann in annotations:
             if ann.get('num_keypoints', 0) == 0:
                 continue
@@ -44,6 +45,13 @@ class CocoMetadata:
             vs = kp[2::3]
 
             joint_list.append([(x, y) if v >= 1 else (-1000, -1000) for x, y, v in zip(xs, ys, vs)])
+            points.append(xs)
+            points.append(ys)
+
+        center_x = (points[0][points[0] < self.width].max() - points[0][points[0] > 0].min()) / 2
+        center_y = (points[1][points[1] < self.height].max() - points[1][points[1] > 0].min()) / 2
+
+        self.center = [center_x, center_y]
 
         self.joint_list = []
         transform = list(zip(
