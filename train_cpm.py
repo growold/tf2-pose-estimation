@@ -44,9 +44,9 @@ from models.vgg_19_model import VGG19_Model
 from models.hourglass_model_v2 import HourglassModelBuilderV2
 from models.conv_pose_machine import ConvolutionalPoseMachines
 
-from callbacks_model import get_check_pointer_callback
-from callbacks_model import get_tensorboard_callback
-from callbacks_model import get_img_tensorboard_callback
+from callbacks_model_cpm import get_check_pointer_callback
+from callbacks_model_cpm import get_tensorboard_callback
+from callbacks_model_cpm import get_img_tensorboard_callback
 
 print("tensorflow version   :", tf.__version__)
 print("keras version        :", tf.keras.__version__)
@@ -58,13 +58,15 @@ def main():
     sys.path.insert(0, COCO_DATALOAD_DIR)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", help="choose a model to train, default is HourglassModel, available: vgg19/hourglass_v2")
+    parser.add_argument(
+        "--model", help="choose a model to train, default is HourglassModel, available: vgg19/hourglass_v2")
 
     args = parser.parse_args()
 
     train_config = TrainConfig()
     model_config = ModelConfig(setuplog_dir=train_config.setuplog_dir)
-    preproc_config = PreprocessingConfig(setuplog_dir=train_config.setuplog_dir)
+    preproc_config = PreprocessingConfig(
+        setuplog_dir=train_config.setuplog_dir)
 
     # ================================================
     # =============== dataset pipeline ===============
@@ -123,7 +125,8 @@ def main():
     output_learning_rate = "_lr{}".format(train_config.learning_rate)
     # output_decoder_filters = "_{}".format(model_config.filter_name)
 
-    output_name = current_time + output_model_name + output_learning_rate  # + output_decoder_filters
+    output_name = current_time + output_model_name + \
+        output_learning_rate  # + output_decoder_filters
 
     model_path = os.path.join(output_path, "models")
     if not os.path.exists(model_path):
@@ -143,13 +146,15 @@ def main():
 
     # --------------------------------------------------------------------------------------------------------------------
     # output model file(.hdf5)
-    check_pointer_callback = get_check_pointer_callback(model_path=model_path, output_name=output_name)
+    check_pointer_callback = get_check_pointer_callback(
+        model_path=model_path, output_name=output_name)
 
     # output tensorboard log
-    tensorboard_callback = get_tensorboard_callback(log_path=log_path, output_name=output_name)
+    tensorboard_callback = get_tensorboard_callback(
+        log_path=log_path, output_name=output_name)
 
     # tensorboard image
-    img_tensorboard_callback = get_img_tensorboard_callback(log_path=log_path, output_name=output_name, images=images,
+    img_tensorboard_callback = get_img_tensorboard_callback(log_path=log_path, output_name=output_name, inputs=images,
                                                             labels=labels, model=model)
     # --------------------------------------------------------------------------------------------------------------------
 
@@ -158,14 +163,14 @@ def main():
     # ================================================
 
     model.fit_generator(data,  # dataset_train_one_shot_iterator
-              epochs=train_config.epochs,
-              steps_per_epoch=train_config.steps_per_epoch,
-              validation_steps=32,
-              validation_data=dataset_valid,
-              callbacks=[
-                  check_pointer_callback,
-                  tensorboard_callback,
-                  img_tensorboard_callback])
+                        epochs=train_config.epochs,
+                        steps_per_epoch=train_config.steps_per_epoch,
+                        validation_steps=32,
+                        validation_data=dataset_valid,
+                        callbacks=[
+                            check_pointer_callback,
+                            tensorboard_callback,
+                            img_tensorboard_callback])
 
 
 if __name__ == '__main__':

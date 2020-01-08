@@ -12,6 +12,12 @@ import struct
 import math
 
 
+def guassian_kernel(size_w, size_h, center_x, center_y, sigma):
+    gridy, gridx = np.mgrid[0:size_h, 0:size_w]
+    D2 = (gridx - center_x) ** 2 + (gridy - center_y) ** 2
+    return np.exp(-D2 / 2.0 / sigma / sigma)
+
+
 class CocoMetadata:
     __coco_parts = 14
 
@@ -44,12 +50,15 @@ class CocoMetadata:
             ys = kp[1::3]
             vs = kp[2::3]
 
-            joint_list.append([(x, y) if v >= 1 else (-1000, -1000) for x, y, v in zip(xs, ys, vs)])
+            joint_list.append([(x, y) if v >= 1 else (-1000, -1000)
+                               for x, y, v in zip(xs, ys, vs)])
             points.append(xs)
             points.append(ys)
 
-        center_x = (points[0][points[0] < self.width].max() - points[0][points[0] > 0].min()) / 2
-        center_y = (points[1][points[1] < self.height].max() - points[1][points[1] > 0].min()) / 2
+        center_x = (points[0][points[0] < self.width].max() -
+                    points[0][points[0] > 0].min()) / 2
+        center_y = (points[1][points[1] < self.height].max() -
+                    points[1][points[1] > 0].min()) / 2
 
         self.center = [center_x, center_y]
 
@@ -67,30 +76,32 @@ class CocoMetadata:
                 if j1[0] <= 0 or j1[1] <= 0 or j2[0] <= 0 or j2[1] <= 0:
                     new_joint.append((-1000, -1000))
                 else:
-                    new_joint.append(((j1[0] + j2[0]) / 2, (j1[1] + j2[1]) / 2))
+                    new_joint.append(
+                        ((j1[0] + j2[0]) / 2, (j1[1] + j2[1]) / 2))
             # background
             # new_joint.append((-1000, -1000))
             self.joint_list.append(new_joint)
 
     def get_heatmap(self, target_size):
 
-        heatmap = np.zeros((CocoMetadata.__coco_parts, self.height, self.width), dtype=np.float32)
+        heatmap = np.zeros(
+            (self.height, self.width, CocoMetadata.__coco_parts), dtype=np.float32)
 
         for joints in self.joint_list:
             for idx, point in enumerate(joints):
                 if point[0] < 0 or point[1] < 0:
                     continue
-                CocoMetadata.put_heatmap(heatmap, idx, point, self.sigma)
-
-        heatmap = heatmap.transpose((1, 2, 0))
-
-        # background
-        # heatmap[:, :, -1] = np.clip(1 - np.amax(heatmap, axis=2), 0.0, 1.0)
+                heat_idx = guassian_kernel(
+                    size_h=self.height, size_w=self.width, center_x=point[0], center_y=point[1], sigma=self.sigma)
+                heat_idx[heat_idx > 1] = 1
+                heat_idx[heat_idx < 0.0099] = 0
+                heatmap[:, :, idx] = heat_idx
 
         # print(heatmap.shape)
         if target_size:
             # print(heatmap.shape, "->", target_size)
-            heatmap = cv2.resize(heatmap, target_size, interpolation=cv2.INTER_AREA)
+            heatmap = cv2.resize(heatmap, target_size,
+                                 interpolation=cv2.INTER_AREA)
 
         return heatmap.astype(np.float16)
 
@@ -116,7 +127,8 @@ class CocoMetadata:
                 exp = d / 2.0 / sigma / sigma
                 if exp > th:
                     continue
-                heatmap[plane_idx][y][x] = max(heatmap[plane_idx][y][x], math.exp(-exp))
+                heatmap[plane_idx][y][x] = max(
+                    heatmap[plane_idx][y][x], math.exp(-exp))
                 heatmap[plane_idx][y][x] = min(heatmap[plane_idx][y][x], 1.0)
 
     def read_image(self, img_path):

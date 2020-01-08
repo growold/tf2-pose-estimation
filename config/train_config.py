@@ -39,7 +39,7 @@ class TrainConfig(object):
         self.learning_rate_finetuning = 1e-5
         self.opt_fn = tf.keras.optimizers.Adam
         self.loss_fn = tf.nn.l2_loss
-        self.batch_size = 32  # 8
+        self.batch_size = 8  # 8
         self.shuffle_size = 1024
         # self.prefetch_size              = 1024
         self.metric_fn = tf.keras.metrics.mae
@@ -52,7 +52,8 @@ class TrainConfig(object):
         self.valid_data_size = 1500
         self.eval_data_size = 1500
 
-        self.total_steps = int(float(self.train_data_size / self.batch_size) * 20.0)
+        self.total_steps = int(
+            float(self.train_data_size / self.batch_size) * 20.0)
         self.multiprocessing_num = 4
         self.random_seed = 66478
 
@@ -66,7 +67,8 @@ class TrainConfig(object):
         self.tflogdir = "{}/run-{}/".format(self.root_logdir + '/tf_logs', now)
         self.ckpt_dir = self.tflogdir + 'pb_and_ckpt/'
 
-        self.setuplog_dir = "{}/run-{}/".format(self.local_logdir + '/train_setup_log', now)
+        self.setuplog_dir = "{}/run-{}/".format(
+            self.local_logdir + '/train_setup_log', now)
 
         print('[train_config] tflog    dir = %s' % self.tflogdir)
         print('[train_config] setuplog dir = %s' % self.setuplog_dir)
@@ -82,7 +84,8 @@ class TrainConfig(object):
     def send_setuplog_to_gcp_bucket(self):
 
         try:
-            cmd = "sudo gsutil cp -r {} {}".format(self.setuplog_dir + '* ', self.tflogdir)
+            cmd = "sudo gsutil cp -r {} {}".format(
+                self.setuplog_dir + '* ', self.tflogdir)
             print('[main] cmd=%s' % cmd)
             check_output(cmd, shell=True)
             # tf.logging.info('[main] success logging config in bucket')
