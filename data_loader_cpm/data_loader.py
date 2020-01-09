@@ -81,26 +81,6 @@ class DataLoader(object):
 
         self.imgIds = self.anno.getImgIds()
 
-    def _set_shapes(self, img, heatmap, centermap):
-
-        batch_size = self.train_config.batch_size
-
-        img.set_shape([batch_size,
-                       self.model_config.input_size,
-                       self.model_config.input_size,
-                       self.model_config.input_chnum])
-
-        heatmap.set_shape([batch_size,
-                           self.model_config.output_size,
-                           self.model_config.output_size,
-                           self.model_config.output_chnum])
-
-        centermap.set_shape([batch_size,
-                             self.model_config.input_size,
-                             self.model_config.input_size,
-                             1])
-        return (img, centermap), heatmap
-
     def _parse_function(self, imgId, ann=None):
         """
         :param imgId: Tensor

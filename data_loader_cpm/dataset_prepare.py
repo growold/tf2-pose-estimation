@@ -85,7 +85,7 @@ class CocoMetadata:
     def get_heatmap(self, target_size):
 
         heatmap = np.zeros(
-            (self.height, self.width, CocoMetadata.__coco_parts), dtype=np.float32)
+            (self.height, self.width, CocoMetadata.__coco_parts + 1), dtype=np.float32)
 
         for joints in self.joint_list:
             for idx, point in enumerate(joints):
@@ -95,9 +95,11 @@ class CocoMetadata:
                     size_h=self.height, size_w=self.width, center_x=point[0], center_y=point[1], sigma=self.sigma)
                 heat_idx[heat_idx > 1] = 1
                 heat_idx[heat_idx < 0.0099] = 0
-                heatmap[:, :, idx] = heat_idx
+                heatmap[:, :, idx + 1] = heat_idx
 
-        # print(heatmap.shape)
+        heatmap[:, :, 0] = 1.0 - np.max(heatmap[:, :, 1:], axis=2)
+
+        # print('heatmap shape:', heatmap.shape)
         if target_size:
             # print(heatmap.shape, "->", target_size)
             heatmap = cv2.resize(heatmap, target_size,

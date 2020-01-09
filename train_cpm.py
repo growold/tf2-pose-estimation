@@ -33,9 +33,9 @@ from config.path_manager import EXPORT_DIR
 from config.path_manager import COCO_DATALOAD_DIR
 from config.path_manager import DATASET_DIR
 
-from config.model_config import ModelConfig
-from config.train_config import PreprocessingConfig
-from config.train_config import TrainConfig
+from data_loader_cpm.model_config import ModelConfig
+from data_loader_cpm.train_config import PreprocessingConfig
+from data_loader_cpm.train_config import TrainConfig
 
 from data_loader_cpm.data_loader import DataLoader
 
@@ -106,8 +106,8 @@ def main():
     model.summary()
 
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
-                  loss=tf.keras.losses.mean_squared_error,
-                  metrics=['accuracy', 'mse'])  # ,
+                  loss=tf.keras.losses.mean_squared_error)  # ,
+    #   metrics=['accuracy', 'mse'])  # ,
     # metrics=['mse'])
     # target_tensors=[targets])#tf.metrics.Accuracy
 
