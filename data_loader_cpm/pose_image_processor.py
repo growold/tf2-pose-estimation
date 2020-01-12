@@ -94,9 +94,10 @@ class PoseImageProcessor:
         if true_heat is not None and pred_heat is not None:
             kps = post_process_heatmap(pred_heat)
             mkps = list()
+            scale = inp.shape[0] // true_heat.shape[0]
             for i, _kp in enumerate(kps):
                 _conf = _kp[2]
-                mkps.append((_kp[0] * 4, _kp[1] * 4, _conf))
+                mkps.append((_kp[0] * scale, _kp[1] * scale, _conf))
 
             cvmat = PoseImageProcessor.get_bgimg(inp)
             cvmat = render_joints(cvmat, mkps, conf_th=0.1)
@@ -108,7 +109,8 @@ class PoseImageProcessor:
             plt.show()
         else:
             fig.canvas.draw()
-            data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+            data = np.fromstring(fig.canvas.tostring_rgb(),
+                                 dtype=np.uint8, sep='')
             data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
             fig.clear()

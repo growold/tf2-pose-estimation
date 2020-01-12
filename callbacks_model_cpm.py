@@ -56,7 +56,7 @@ def get_img_tensorboard_callback(log_path, output_name, inputs, labels, model):
         predictions = predictions[-1]
 
         # Log the confusion matrix as an image summary.
-        from data_loader.pose_image_processor import PoseImageProcessor
+        from data_loader_cpm.pose_image_processor import PoseImageProcessor
 
         # summary_str = []
         images = inputs['input_1']

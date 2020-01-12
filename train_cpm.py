@@ -58,8 +58,8 @@ def main():
     sys.path.insert(0, COCO_DATALOAD_DIR)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model", help="choose a model to train, default is HourglassModel, available: vgg19/hourglass_v2")
+    parser.add_argument("--resume", default=False, help="retrain a model")
+    parser.add_argument("--resume_model", help="retrain model name")
 
     args = parser.parse_args()
 
@@ -67,49 +67,6 @@ def main():
     model_config = ModelConfig(setuplog_dir=train_config.setuplog_dir)
     preproc_config = PreprocessingConfig(
         setuplog_dir=train_config.setuplog_dir)
-
-    # ================================================
-    # =============== dataset pipeline ===============
-    # ================================================
-
-    # dataloader instance gen
-    dataloader_train, dataloader_valid = \
-        [DataLoader(
-            is_training=is_training,
-            data_dir=DATASET_DIR,
-            transpose_input=False,
-            train_config=train_config,
-            model_config=model_config,
-            preproc_config=preproc_config,
-            use_bfloat16=False) for is_training in [True, False]]
-
-    dataset_train = dataloader_train.input_fn()
-    dataset_valid = dataloader_valid.input_fn()
-
-    data = dataset_train.repeat()
-    # iterator = data.make_one_shot_iterator()
-    # inputs, targets = iterator.get_next()
-    # print(inputs['input_1'])
-    # print(inputs['input_2'])
-    # print(targets)
-    # data = dataset_train
-
-    # ================================================
-    # ============== configure model =================
-    # ================================================
-
-    model_builder = ConvolutionalPoseMachines()
-    model_builder.build_model()
-    # model_builder.build_model(inputs=inputs)
-
-    model = model_builder.model
-    model.summary()
-
-    model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
-                  loss=tf.keras.losses.mean_squared_error)  # ,
-    #   metrics=['accuracy', 'mse'])  # ,
-    # metrics=['mse'])
-    # target_tensors=[targets])#tf.metrics.Accuracy
 
     # ================================================
     # =============== setup output ===================
@@ -142,6 +99,54 @@ def main():
     print("model name:", output_name)
     print("\n")
 
+    # ================================================
+    # =============== dataset pipeline ===============
+    # ================================================
+
+    # dataloader instance gen
+    dataloader_train, dataloader_valid = \
+        [DataLoader(
+            is_training=is_training,
+            data_dir=DATASET_DIR,
+            transpose_input=False,
+            train_config=train_config,
+            model_config=model_config,
+            preproc_config=preproc_config,
+            use_bfloat16=False) for is_training in [True, False]]
+
+    # dataset_train = dataloader_train.input_fn()
+    dataset_valid = dataloader_valid.input_fn()
+
+    # data = dataset_train.repeat()
+    # iterator = data.make_one_shot_iterator()
+    # inputs, targets = iterator.get_next()
+    # print(inputs['input_1'])
+    # print(inputs['input_2'])
+    # print(targets)
+    # data = dataset_train
+
+    # ================================================
+    # ============== configure model =================
+    # ================================================
+    if args.resume:
+        load_model_path = os.path.join(model_path, args.resume_model)
+        print('load_model path:', load_model_path)
+        model_builder = ConvolutionalPoseMachines()
+        model_builder.build_model()
+        model = model_builder.model
+        model.load_weights(load_model_path)
+    else:
+        model_builder = ConvolutionalPoseMachines()
+        model_builder.build_model()
+        model = model_builder.model
+        model.summary()
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
+                  loss=tf.keras.losses.mean_squared_error)  # ,
+    #   metrics=['accuracy', 'mse'])  # ,
+    # metrics=['mse'])
+    # target_tensors=[targets])#tf.metrics.Accuracy
+
     images, labels = dataloader_valid.get_images(22, batch_size=6)
 
     # --------------------------------------------------------------------------------------------------------------------
@@ -162,11 +167,11 @@ def main():
     # ==================== train! ====================
     # ================================================
 
-    model.fit_generator(data,  # dataset_train_one_shot_iterator
+    model.fit_generator(dataloader_train,  # dataset_train_one_shot_iterator
                         epochs=train_config.epochs,
-                        steps_per_epoch=train_config.steps_per_epoch,
                         validation_steps=32,
                         validation_data=dataset_valid,
+                        shuffle=True,
                         callbacks=[
                             check_pointer_callback,
                             tensorboard_callback,

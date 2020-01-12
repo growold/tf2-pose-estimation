@@ -38,7 +38,7 @@ class TrainConfig(object):
         self.learning_rate_finetuning = 1e-5
         self.opt_fn = tf.keras.optimizers.Adam
         self.loss_fn = tf.nn.l2_loss
-        self.batch_size = 8  # 8
+        self.batch_size = 6  # 8
         self.shuffle_size = 1024
         # self.prefetch_size              = 1024
         self.metric_fn = tf.keras.metrics.mae

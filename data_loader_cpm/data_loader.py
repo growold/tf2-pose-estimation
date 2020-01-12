@@ -24,6 +24,10 @@ import sys
 import os
 
 import tensorflow as tf
+from tensorflow.keras.utils import Sequence
+
+import numpy as np
+
 from os.path import join
 
 from config.path_manager import DATASET_DIR
@@ -36,7 +40,7 @@ from data_loader_cpm.dataset_prepare import CocoMetadata
 sys.path.insert(0, DATASET_DIR)
 
 
-class DataLoader(object):
+class DataLoader(Sequence):
     """Generates DataSet input_fn for training or evaluation
         Args:
             is_training: `bool` for whether the input is for training
@@ -80,6 +84,7 @@ class DataLoader(object):
         self.anno = COCO(dataset_path)
 
         self.imgIds = self.anno.getImgIds()
+        self.on_epoch_end()
 
     def _parse_function(self, imgId, ann=None):
         """
@@ -121,6 +126,32 @@ class DataLoader(object):
         # import numpy as np
         # return np.array(images), np.array(labels)
 
+    def __len__(self):
+        batch_size = self.train_config.batch_size
+        return len(self.imgIds) // batch_size
+
+    def __getitem__(self, idx):
+        batch_size = self.train_config.batch_size
+        batch_img = []
+        batch_labels = []
+        batch_centermap = []
+        for i in range(batch_size):
+            index = self.indexes[idx * batch_size + i]  # for shuffle purpose
+            imgId = self.imgIds[index]
+            img, labels, centermap = self._parse_function(imgId)
+            batch_img.append(img)
+            batch_labels.append(labels)
+            batch_centermap.append(centermap)
+
+        batch_img = np.array(batch_img)
+        batch_centermap = np.array(batch_centermap)
+        batch_labels = np.array(batch_labels)
+        return {'input_1': batch_img, 'input_2': batch_centermap}, {'output_1': batch_labels, 'output_2': batch_labels, 'output_3': batch_labels, 'output_4': batch_labels, 'output_5': batch_labels, 'output_6': batch_labels}
+
+    def on_epoch_end(self):
+        self.indexes = np.arange(len(self.imgIds))
+        np.random.shuffle(self.indexes)
+
     def generator(self):
         for imgId in self.imgIds:
             img, labels, centermap = self._parse_function(imgId)
@@ -155,5 +186,5 @@ class DataLoader(object):
             labels.append(label)
             centermaps.append(centermap)
         # imgs, labels = self._parse_function(imgIds[idx:idx + batch_size])
-        import numpy as np
+
         return {'input_1': np.array(imgs), 'input_2': np.array(centermaps)}, np.array(labels)

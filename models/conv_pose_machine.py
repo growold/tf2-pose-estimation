@@ -63,23 +63,33 @@ class ConvolutionalPoseMachines():
         ##### stage 1 #####
         x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same',
                           activation='relu', name='stage_1_conv_1')(input)  # (368, 368, 128)
+        x = layers.BatchNormalization()(x)
         x = layers.MaxPool2D(pool_size=3, strides=2, padding='same',
                              name='stage_1_pool_1')(x)  # (183, 183, 128)
+
         x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same',
                           activation='relu', name='stage_1_conv_2')(x)  # (183, 183, 128)
+        x = layers.BatchNormalization()(x)
         x = layers.MaxPool2D(pool_size=3, strides=2, padding='same',
                              name='stage_1_pool_2')(x)  # (91, 91, 128)
+
         x = layers.Conv2D(128, kernel_size=9, strides=1, padding='same',
                           activation='relu', name='stage_1_conv_3')(x)  # (91, 91, 128)
+        x = layers.BatchNormalization()(x)
         x = layers.MaxPool2D(pool_size=3, strides=2, padding='same',
                              name='stage_1_pool_3')(x)  # (45, 45, 128)
 
         x = layers.Conv2D(32, kernel_size=5, strides=1, padding='same',
                           activation='relu', name='stage_1_conv_4')(x)  # (45, 45, 32)
-        x = layers.Conv2D(512, kernel_size=5, strides=1, padding='same',
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(512, kernel_size=9, strides=1, padding='same',
                           activation='relu', name='stage_1_conv_5')(x)  # (45, 45, 512)
-        x = layers.Conv2D(512, kernel_size=5, strides=1, padding='same',
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(512, kernel_size=1, strides=1, padding='same',
                           activation='relu', name='stage_1_conv_6')(x)  # (45, 45, 512)
+        x = layers.BatchNormalization()(x)
 
         stage1_map = layers.Conv2D(
             N_KPOINTS + 1, kernel_size=1, strides=1, padding='same', name='output_1')(x)
@@ -88,12 +98,17 @@ class ConvolutionalPoseMachines():
         ##### middle #####
         x = layers.Conv2D(128, kernel_size=9, strides=1,
                           padding='same', activation='relu')(input)
+        x = layers.BatchNormalization()(x)
         x = layers.MaxPool2D(pool_size=3, strides=2, padding='same')(x)
+
         x = layers.Conv2D(128, kernel_size=9, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
         x = layers.MaxPool2D(pool_size=3, strides=2, padding='same')(x)
+
         x = layers.Conv2D(128, kernel_size=9, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
         middle_map = layers.MaxPool2D(
             pool_size=3, strides=2, padding='same')(x)
         ##### middle end #####
@@ -101,15 +116,25 @@ class ConvolutionalPoseMachines():
         ##### stage 2 #####
         x = layers.Conv2D(32, kernel_size=5, strides=1,
                           padding='same', activation='relu')(middle_map)
+        x = layers.BatchNormalization()(x)
         x = layers.Concatenate()([x, stage1_map, center_map])
-        x = layers.Conv2D(32 + N_KPOINTS + 2, kernel_size=11,
+
+        x = layers.Conv2D(128, kernel_size=11,
                           strides=1, padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=1, strides=1,
                           padding='valid', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         stage2_map = layers.Conv2D(
             N_KPOINTS + 1, kernel_size=1, name='output_2')(x)
         ##### stage 2 end #####
@@ -117,15 +142,25 @@ class ConvolutionalPoseMachines():
         ##### stage 3 #####
         x = layers.Conv2D(32, kernel_size=5, strides=1,
                           padding='same', activation='relu')(middle_map)
+        x = layers.BatchNormalization()(x)
         x = layers.Concatenate()([x, stage2_map, center_map])
-        x = layers.Conv2D(32 + N_KPOINTS + 2, kernel_size=11, strides=1,
-                          padding='same', activation='relu')(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(128, kernel_size=11, strides=1,
+                          padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=1, strides=1,
                           padding='valid', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         stage3_map = layers.Conv2D(
             N_KPOINTS + 1, kernel_size=1, name='output_3')(x)
         ##### stage 3 end #####
@@ -133,15 +168,25 @@ class ConvolutionalPoseMachines():
         ##### stage 4 #####
         x = layers.Conv2D(32, kernel_size=5, strides=1,
                           padding='same', activation='relu')(middle_map)
+        x = layers.BatchNormalization()(x)
         x = layers.Concatenate()([x, stage3_map, center_map])
-        x = layers.Conv2D(32 + N_KPOINTS + 2, kernel_size=11, strides=1,
-                          padding='same', activation='relu')(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(128, kernel_size=11, strides=1,
+                          padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=1, strides=1,
                           padding='valid', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         stage4_map = layers.Conv2D(
             N_KPOINTS + 1, kernel_size=1, name='output_4')(x)
         ##### stage 4 end #####
@@ -149,15 +194,25 @@ class ConvolutionalPoseMachines():
         ##### stage 5 #####
         x = layers.Conv2D(32, kernel_size=5, strides=1,
                           padding='same', activation='relu')(middle_map)
+        x = layers.BatchNormalization()(x)
         x = layers.Concatenate()([x, stage4_map, center_map])
-        x = layers.Conv2D(32 + N_KPOINTS + 2, kernel_size=11, strides=1,
-                          padding='same', activation='relu')(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(128, kernel_size=11, strides=1,
+                          padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=1, strides=1,
                           padding='valid', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         stage5_map = layers.Conv2D(
             N_KPOINTS + 1, kernel_size=1, name='output_5')(x)
         ##### stage 5 end #####
@@ -165,15 +220,25 @@ class ConvolutionalPoseMachines():
         ##### stage 6 #####
         x = layers.Conv2D(32, kernel_size=5, strides=1,
                           padding='same', activation='relu')(middle_map)
+        x = layers.BatchNormalization()(x)
         x = layers.Concatenate()([x, stage5_map, center_map])
-        x = layers.Conv2D(32 + N_KPOINTS + 2, kernel_size=11, strides=1,
-                          padding='same', activation='relu')(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=11, strides=1,
                           padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(128, kernel_size=11, strides=1,
+                          padding='same', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         x = layers.Conv2D(128, kernel_size=1, strides=1,
                           padding='valid', activation='relu')(x)
+        x = layers.BatchNormalization()(x)
+
         stage6_map = layers.Conv2D(
             N_KPOINTS + 1, kernel_size=1, name='output_6')(x)
         ##### stage 6 end #####
