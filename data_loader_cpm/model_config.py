@@ -17,10 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-# import tensorflow.contrib.slim as slim
-import json
-
 class ModelConfig(object):
 
     def __init__(self, setuplog_dir):
@@ -57,9 +53,6 @@ class ModelConfig(object):
         self.hourglass = HourglassConfig(channel_num=self.channel_num)
         self.output = OutputConfig()
         self.separable_conv = SeparableConfig()
-
-        self.dtype = tf.float32
-
         self.decoder_layers = [
             {"filters": 64, "kernel_size": 4, "strides": (4, 4)},
             {"filters": 64, "kernel_size": 4, "strides": (3, 3)},

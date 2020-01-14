@@ -20,7 +20,6 @@
 '''
 
 from os import getcwd
-from os import chdir
 import os
 
 # move to project home directory

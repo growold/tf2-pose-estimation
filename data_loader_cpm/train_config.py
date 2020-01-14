@@ -17,12 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
 from datetime import datetime
 from config.path_manager import EXPORT_DIR
 from config.path_manager import LOCAL_LOG_DIR
-from subprocess import check_output
-
 
 class TrainConfig(object):
 
@@ -36,12 +33,8 @@ class TrainConfig(object):
         self.learning_rate_decay_step = 2000
         self.learning_rate_decay_rate = 0.95
         self.learning_rate_finetuning = 1e-5
-        self.opt_fn = tf.keras.optimizers.Adam
-        self.loss_fn = tf.nn.l2_loss
-        self.batch_size = 6  # 8
+        self.batch_size = 8  # 8
         self.shuffle_size = 1024
-        # self.prefetch_size              = 1024
-        self.metric_fn = tf.keras.metrics.mae
 
         # the number of step between evaluation
         self.display_step = 100
@@ -72,25 +65,6 @@ class TrainConfig(object):
         print('[train_config] tflog    dir = %s' % self.tflogdir)
         print('[train_config] setuplog dir = %s' % self.setuplog_dir)
         self.train_config_dict = self.__dict__
-
-        # if not tf.gfile.Exists(self.setuplog_dir):
-        #     tf.gfile.MakeDirs(self.setuplog_dir)
-        train_config_filename = self.setuplog_dir + 'train_config.json'
-
-        # with open(train_config_filename,'w') as fp:
-        #     json.dump(str(self.train_config_dict),fp)
-
-    def send_setuplog_to_gcp_bucket(self):
-
-        try:
-            cmd = "sudo gsutil cp -r {} {}".format(
-                self.setuplog_dir + '* ', self.tflogdir)
-            print('[main] cmd=%s' % cmd)
-            check_output(cmd, shell=True)
-            # tf.logging.info('[main] success logging config in bucket')
-        except:
-            # tf.logging.info('[main] failure logging config in bucket')
-            print('[main] failure logging config in bucket')
 
 
 class PreprocessingConfig(object):
