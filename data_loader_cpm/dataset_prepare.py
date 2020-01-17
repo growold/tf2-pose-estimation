@@ -11,11 +11,7 @@ import cv2
 import struct
 import math
 
-
-def guassian_kernel(size_w, size_h, center_x, center_y, sigma):
-    gridy, gridx = np.mgrid[0:size_h, 0:size_w]
-    D2 = (gridx - center_x) ** 2 + (gridy - center_y) ** 2
-    return np.exp(-D2 / 2.0 / sigma / sigma)
+from utils.utils import gaussian_kernel
 
 
 class CocoMetadata:
@@ -91,7 +87,7 @@ class CocoMetadata:
             for idx, point in enumerate(joints):
                 if point[0] < 0 or point[1] < 0:
                     continue
-                heat_idx = guassian_kernel(
+                heat_idx = gaussian_kernel(
                     size_h=self.height, size_w=self.width, center_x=point[0], center_y=point[1], sigma=self.sigma)
                 heat_idx[heat_idx > 1] = 1
                 heat_idx[heat_idx < 0.0099] = 0

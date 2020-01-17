@@ -81,13 +81,13 @@ class DataLoader(data.Dataset):
 
         self.imgIds = self.anno.getImgIds()
 
-    def _parse_function(self, imgId, ann=None):
+    def _parse_function(self, img_id, ann=None):
         """
-        :param imgId: Tensor
+        :param img_id: Tensor
         :return:
         """
         try:
-            imgId = imgId.numpy()
+            img_id = img_id.numpy()
         except AttributeError:
             # print(AttributeError)
             var = None
@@ -95,8 +95,8 @@ class DataLoader(data.Dataset):
         if ann is not None:
             self.anno = ann
 
-        img_meta = self.anno.loadImgs([imgId])[0]
-        anno_ids = self.anno.getAnnIds(imgIds=imgId)
+        img_meta = self.anno.loadImgs([img_id])[0]
+        anno_ids = self.anno.getAnnIds(imgIds=img_id)
         img_anno = self.anno.loadAnns(anno_ids)
         idx = img_meta['id']
 
@@ -113,7 +113,7 @@ class DataLoader(data.Dataset):
 
         # print('joint_list = %s' % img_meta_data.joint_list)
         images, heatmap, centermap = self.image_preprocessing_fn(img_meta_data=img_meta_data,
-                                                                preproc_config=self.preproc_config)
+                                                                 preproc_config=self.preproc_config)
 
         images = torch.from_numpy(images.transpose((2, 0, 1)))
         heatmap = torch.from_numpy(heatmap.transpose((2, 0, 1)))
@@ -124,19 +124,18 @@ class DataLoader(data.Dataset):
         return len(self.imgIds)
 
     def __getitem__(self, idx):
-        imgId = self.imgIds[idx]
-        img, heatmap, centermap = self._parse_function(imgId)
+        img_id = self.imgIds[idx]
+        img, heatmap, centermap = self._parse_function(img_id)
         return img, heatmap, centermap
 
     def get_images(self, idx, batch_size):
-        imgs = []
-        labels = []
-        centermaps = []
+        img_list = []
+        heatmap_list = []
+        centermap_list = []
         for i in range(batch_size):
             img, label, centermap = self._parse_function(self.imgIds[i + idx])
-            imgs.append(img)
-            labels.append(label)
-            centermaps.append(centermap)
-        # imgs, labels = self._parse_function(imgIds[idx:idx + batch_size])
+            img_list.append(img)
+            heatmap_list.append(label)
+            centermap_list.append(centermap)
 
-        return {'input_1': np.array(imgs), 'input_2': np.array(centermaps)}, np.array(labels)
+        return {'input_1': np.array(img_list), 'input_2': np.array(centermap_list)}, np.array(heatmap_list)

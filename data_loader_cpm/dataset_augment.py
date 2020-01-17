@@ -10,8 +10,10 @@ import random
 
 import cv2
 import numpy as np
-from tensorpack.dataflow.imgaug.geometry import RotationAndCropValid
+# from tensorpack.dataflow.imgaug.geometry import RotationAndCropValid
 from enum import Enum
+
+from utils.utils import gaussian_kernel
 
 from data_loader_cpm.model_config import ModelConfig
 
@@ -20,6 +22,7 @@ model_cfg = ModelConfig(setuplog_dir=None)
 _network_w = int(model_cfg.input_size)
 _network_h = _network_w
 _scale = int(model_cfg.input_size / model_cfg.output_size)
+
 
 class CocoPart(Enum):
     Top = 0
@@ -37,6 +40,7 @@ class CocoPart(Enum):
     LKnee = 12
     LAnkle = 13
     Background = 14  # Background is not used
+
 
 def pose_random_scale(meta):
     scalew = random.uniform(0.8, 1.2)
@@ -64,22 +68,33 @@ def pose_random_scale(meta):
 
 
 def pose_rotation(meta, preproc_config):
-    deg = random.uniform(preproc_config.MIN_AUGMENT_ROTATE_ANGLE_DEG, \
+    deg = random.uniform(preproc_config.MIN_AUGMENT_ROTATE_ANGLE_DEG,
                          preproc_config.MAX_AUGMENT_ROTATE_ANGLE_DEG)
     img = meta.img
 
     center = (img.shape[1] * 0.5, img.shape[0] * 0.5)  # x, y
+    height, width, _ = img.shape
+    # 构造旋转矩阵,一个点(x,y)旋转后坐标如下:
+    # (rot_m[0][0] * x + rot_m[0][1] * y + rot_m[0][2], rot_m[1][0] * x + rot_m[1][1] * y + rot_m[1][2])
     rot_m = cv2.getRotationMatrix2D((int(center[0]), int(center[1])), deg, 1)
-    ret = cv2.warpAffine(img, rot_m, img.shape[1::-1], flags=cv2.INTER_AREA, borderMode=cv2.BORDER_CONSTANT)
-    if img.ndim == 3 and ret.ndim == 2:
-        ret = ret[:, :, np.newaxis]
-    neww, newh = RotationAndCropValid.largest_rotated_rect(ret.shape[1], ret.shape[0], deg)
-    neww = min(neww, ret.shape[1])
-    newh = min(newh, ret.shape[0])
-    newx = int(center[0] - neww * 0.5)
-    newy = int(center[1] - newh * 0.5)
-    # print(ret.shape, deg, newx, newy, neww, newh)
-    img = ret[newy:newy + newh, newx:newx + neww]
+
+    cos_val = np.abs(rot_m[0, 0])
+    sin_val = np.abs(rot_m[0, 1])
+    new_width = int(height * sin_val + width * cos_val)
+    new_height = int(height * cos_val + width * sin_val)
+    rot_m[0, 2] += (new_width * 0.5) - center[1]
+    rot_m[1, 2] += (new_height * 0.5) - center[0]
+
+    img = cv2.warpAffine(img, rot_m, (new_width, new_height), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_CONSTANT)
+    # if img.ndim == 3 and ret.ndim == 2:
+    #     ret = ret[:, :, np.newaxis]
+    # neww, newh = RotationAndCropValid.largest_rotated_rect(ret.shape[1], ret.shape[0], deg)
+    # neww = min(neww, ret.shape[1])
+    # newh = min(newh, ret.shape[0])
+    # newx = int(center[0] - neww * 0.5)
+    # newy = int(center[1] - newh * 0.5)
+    # # print(ret.shape, deg, newx, newy, neww, newh)
+    # img = ret[newy:newy + newh, newx:newx + neww]
 
     # adjust meta data
     adjust_joint_list = []
@@ -92,12 +107,14 @@ def pose_rotation(meta, preproc_config):
             # if point[0] <= 0 or point[1] <= 0:
             #     adjust_joint.append((-1, -1))
             #     continue
-            x, y = _rotate_coord((meta.width, meta.height), (newx, newy), point, deg)
-            adjust_joint.append((x, y))
+            # x, y = _rotate_coord((meta.width, meta.height), (newx, newy), point, deg)
+            p = np.array([point[0], point[1], 1])
+            p = rot_m.dot(p)
+            adjust_joint.append((p[0], p[1]))
         adjust_joint_list.append(adjust_joint)
 
     meta.joint_list = adjust_joint_list
-    meta.width, meta.height = neww, newh
+    meta.width, meta.height = new_width, new_height
     meta.img = img
 
     return meta
@@ -268,19 +285,11 @@ def pose_crop_random(meta):
 
     return pose_crop(meta, x, y, target_size[0], target_size[1])
 
-def guassian_kernel(size_w, size_h, center_x, center_y, sigma):
-    gridy, gridx = np.mgrid[0:size_h, 0:size_w]
-    D2 = (gridx - center_x) ** 2 + (gridy - center_y) ** 2
-    return np.exp(-D2 / 2.0 / sigma / sigma)
 
 def pose_to_img(meta_l):
     global _network_w, _network_h, _scale
-    # return meta_l.img.astype(np.float32), \
-    #        meta_l.get_heatmap(target_size=(_network_w // _scale, _network_h // _scale)).astype(np.float32)
     return meta_l.img.astype(np.float32), \
            meta_l.get_heatmap(target_size=(model_cfg.output_size, model_cfg.output_size)).astype(np.float32)
-    # return meta_l.img.astype(np.float32), \
-    #        meta_l.get_heatmap(target_size=(model_config.output_size, model_config.output_size)).astype(np.float32)
 
 
 def preprocess_image(img_meta_data, preproc_config):
@@ -306,7 +315,9 @@ def preprocess_image(img_meta_data, preproc_config):
     images, labels = pose_to_img(img_meta_data)
 
     centermap = np.zeros((_network_h, _network_w, 1), dtype=np.float32)
-    center_map = guassian_kernel(size_h=_network_h, size_w=_network_w, center_x=img_meta_data.center[0], center_y=img_meta_data.center[1], sigma=img_meta_data.sigma)
+    center_map = gaussian_kernel(size_h=_network_h, size_w=_network_w,
+                                 center_x=img_meta_data.center[0], center_y=img_meta_data.center[1],
+                                 sigma=img_meta_data.sigma)
     center_map[center_map > 1] = 1
     center_map[center_map < 0.0099] = 0
     centermap[:, :, 0] = center_map

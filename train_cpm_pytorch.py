@@ -18,6 +18,9 @@ import os
 import sys
 import time
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from config.path_manager import PROJ_HOME
 
 import argparse
@@ -36,12 +39,16 @@ from data_loader_cpm.data_loader import DataLoader
 from models_pytorch.conv_pose_machines import ConvPoseMachines
 
 import torch
+import torchvision
 import torch.nn as nn
 from torch.utils import data
 
 import torch.backends.cudnn as cudnn
+from torch.utils.tensorboard import SummaryWriter
 
 from utils.utils import AverageMeter, adjust_learning_rate
+
+writer = SummaryWriter('outputs/logs/cpm_pytorch_logs')
 
 
 def get_parameters(model, lr, isdefault=True):
@@ -144,6 +151,7 @@ def main():
         print('load model from file:' + saved_model)
         saved_dict = torch.load(saved_model)
         model.load_state_dict(saved_dict)
+        start_epoch += 1
     else:
         start_epoch = 0
 
@@ -165,10 +173,10 @@ def main():
 
     heat_weight = 46 * 46 * 15 / 1.0
 
-    for iters in range(start_epoch, train_config.epochs):
+    for epoch in range(start_epoch, train_config.epochs):
         for i, (inp, heatmap, centermap) in enumerate(dataloader_train):
 
-            learning_rate = adjust_learning_rate(optimizer, iters,
+            learning_rate = adjust_learning_rate(optimizer, epoch,
                                                  base_learning_rate, policy='step',
                                                  policy_parameter={'gamma': 0.333, 'step_size': 13275},
                                                  multiple=multiple)
@@ -204,7 +212,17 @@ def main():
             end = time.time()
 
             if i % 50 == 0:
-                print(f'Train Iteration: {iters} / {train_config.epochs} time: {epoch_time.sum:.3f}s\n'
+                it = epoch * len(dataloader_train) + i
+                print('write to tensorboard it:', it)
+                writer.add_scalar('training loss', losses.val, it)
+                grid = torchvision.utils.make_grid(inp)
+                print('grid shape:', grid.shape)
+                img = np.transpose(grid.cpu().data.numpy() * 255.0, (1, 2, 0)).astype(np.uint8)
+                plt.imshow(img)
+                writer.add_image('image', grid, it)
+                writer.flush()
+
+                print(f'Train Epoch: {epoch} / {train_config.epochs} time: {epoch_time.sum:.3f}s\n'
                       f'Train Step: {i}\n'
                       f'Time {batch_time.sum: .3f}s ({batch_time.avg:.3f})\t'
                       f'Data load {data_time.sum:.3f}s ({data_time.avg:.3f})\n'
@@ -223,9 +241,49 @@ def main():
                     losses_list[cnt].reset()
 
         epoch_time.reset()
-        if iters % 5 == 0:
-            save_model = os.path.join(model_path, model_name_template.format(iters))
-            torch.save(model.state_dict(), save_model)
+        # if epoch % 5 == 0:
+        save_model = os.path.join(model_path, model_name_template.format(epoch))
+        torch.save(model.state_dict(), save_model)
+
+        # model.eval()
+        # for j, (inp, heatmap, centermap) in enumerate(dataloader_valid):
+        #     inp = inp.to(device, non_blocking=True)
+        #     heatmap = heatmap.to(device, non_blocking=True)
+        #     centermap = centermap.to(device, non_blocking=True)
+        #
+        #     heat1, heat2, heat3, heat4, heat5, heat6 = model(inp, centermap)
+        #
+        #     loss1 = criterion(heat1, heatmap) * heat_weight
+        #     loss2 = criterion(heat2, heatmap) * heat_weight
+        #     loss3 = criterion(heat3, heatmap) * heat_weight
+        #     loss4 = criterion(heat4, heatmap) * heat_weight
+        #     loss5 = criterion(heat5, heatmap) * heat_weight
+        #     loss6 = criterion(heat6, heatmap) * heat_weight
+        #
+        #     loss = loss1 + loss2 + loss3 + loss4 + loss5 + loss6
+        #     losses.update(loss.item(), inp.size(0))
+        #
+        #     for cnt, l in enumerate([loss1, loss2, loss3, loss4, loss5, loss6]):
+        #         losses_list[cnt].update(l.item(), inp.size(0))
+        #
+        #     batch_time.update(time.time() - end)
+        #     end = time.time()
+        #
+        #     if j % 50 == 0:
+        #         print(f'Test Epoch: {epoch}\t'
+        #               f'Time {batch_time.sum:.3f}s / 50 iters, ({batch_time.avg:.3f})\t'
+        #               f'Data load {data_time.sum:.3f}s / 50 iters, ({data_time.avg:.3f})\n'
+        #               f'Loss = {losses.val:.8f} (ave = {losses.avg:.8f})\n')
+        #         for cnt in range(6):
+        #             print(f'Loss{cnt+1} = {losses_list[cnt].val:.8f} (ave = {losses_list[cnt].avg:.8f})\t')
+        #
+        #         print(time.strftime('%Y-%m-%d %H:%M:%S --------------------- \n'))
+        #         batch_time.reset()
+        #         losses.reset()
+        #         for cnt in range(6):
+        #             losses_list[cnt].reset()
+        #
+        # model.train()
 
 
 if __name__ == '__main__':

@@ -1,22 +1,16 @@
 import math
 import torch
 import shutil
-# import time
-# import os
-# import random
-# from easydict import EasyDict as edict
-# import yaml
-# import numpy as np
+import numpy as np
 
 
 class AverageMeter(object):
-    """ Computes ans stores the average and current value"""
+    """ Computes and stores the average and current value"""
     def __init__(self):
         self.val = 0.
         self.avg = 0.
         self.sum = 0.
         self.count = 0
-        self.reset()
 
     def reset(self):
         self.val = 0.
@@ -77,11 +71,19 @@ def save_checkpoint(state, is_best, filename='checkpoint'):
     if is_best:
         shutil.copyfile(filename + '_latest.pth.tar', filename + '_best.pth.tar')
 
-#
-# def Config(filename):
-#
-#     with open(filename, 'r') as f:
-#         parser = edict(yaml.load(f))
-#     for x in parser:
-#         print( '{}: {}'.format(x, parser[x]))
-#     return parser
+
+def gaussian_kernel(size_w, size_h, center_x, center_y, sigma):
+    gridy, gridx = np.mgrid[0:size_h, 0:size_w]
+    D2 = (gridx - center_x) ** 2 + (gridy - center_y) ** 2
+    return np.exp(-D2 / 2.0 / sigma / sigma)
+
+
+def create_center_map(size, center, sigma):
+    centermap = np.zeros(size, dtype=np.float32)
+    center_map = gaussian_kernel(size_h=size[0], size_w=size[1],
+                                 center_x=center[0], center_y=center[1],
+                                 sigma=sigma)
+    center_map[center_map > 1] = 1
+    center_map[center_map < 0.0099] = 0
+    centermap[:, :, 0] = center_map
+    return centermap
