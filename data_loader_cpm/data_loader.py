@@ -157,6 +157,61 @@ class DataLoader(Sequence):
             img, labels, centermap = self._parse_function(imgId)
             yield {'input_1': img, 'input_2': centermap}, {'output_1': labels, 'output_2': labels, 'output_3': labels, 'output_4': labels, 'output_5': labels, 'output_6': labels}
 
+    def _set_shapes(self, inp, output):
+        batch_size = self.train_config.batch_size
+        inp['input_1'].set_shape([
+            batch_size,
+            self.model_config.input_size,
+            self.model_config.input_size,
+            3
+        ])
+        inp['input_2'].set_shape([
+            batch_size,
+            self.model_config.input_size,
+            self.model_config.input_size,
+            1
+        ])
+
+        output['output_1'].set_shape([
+            batch_size,
+            self.model_config.output_size,
+            self.model_config.output_size,
+            15
+        ])
+        output['output_2'].set_shape([
+            batch_size,
+            self.model_config.output_size,
+            self.model_config.output_size,
+            15
+        ])
+        output['output_3'].set_shape([
+            batch_size,
+            self.model_config.output_size,
+            self.model_config.output_size,
+            15
+        ])
+        output['output_4'].set_shape([
+            batch_size,
+            self.model_config.output_size,
+            self.model_config.output_size,
+            15
+        ])
+        output['output_5'].set_shape([
+            batch_size,
+            self.model_config.output_size,
+            self.model_config.output_size,
+            15
+        ])
+        output['output_6'].set_shape([
+            batch_size,
+            self.model_config.output_size,
+            self.model_config.output_size,
+            15
+        ])
+
+        return inp, output
+
+
     def input_fn(self, params=None):
         """Input function which provides a single batch for train or eval.
             Args:
@@ -173,6 +228,7 @@ class DataLoader(Sequence):
                                                  output_types=({'input_1': tf.float32, 'input_2': tf.float32},
                                                                {'output_1': tf.float32, 'output_2': tf.float32, 'output_3': tf.float32, 'output_4': tf.float32, 'output_5': tf.float32, 'output_6': tf.float32}))
         dataset = dataset.batch(self.train_config.batch_size)
+        dataset = dataset.map(self._set_shapes)
 
         return dataset
 

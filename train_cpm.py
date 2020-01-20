@@ -114,7 +114,7 @@ def main():
             preproc_config=preproc_config,
             use_bfloat16=False) for is_training in [True, False]]
 
-    # dataset_train = dataloader_train.input_fn()
+    dataset_train = dataloader_train.input_fn()
     dataset_valid = dataloader_valid.input_fn()
 
     # data = dataset_train.repeat()
@@ -139,7 +139,7 @@ def main():
         model_builder = ConvolutionalPoseMachines()
         model_builder.build_model()
         model = model_builder.model
-        model.summary()
+        # model.summary()
 
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
                   loss=tf.keras.losses.mean_squared_error)  # ,
@@ -167,7 +167,7 @@ def main():
     # ==================== train! ====================
     # ================================================
 
-    model.fit_generator(dataloader_train,  # dataset_train_one_shot_iterator
+    model.fit(dataset_train,  # dataset_train_one_shot_iterator
                         epochs=train_config.epochs,
                         validation_steps=32,
                         validation_data=dataset_valid,
