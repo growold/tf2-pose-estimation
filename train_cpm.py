@@ -15,19 +15,15 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import json
 
 import tensorflow as tf
-from tensorflow.keras import layers
-import numpy as np
 import sys
-from os import getcwd
 from datetime import datetime
 
-from config.path_manager import PROJ_HOME
-
-import configparser
 import argparse
 
+from config.path_manager import PROJ_HOME
 from config.path_manager import TF_MODULE_DIR
 from config.path_manager import EXPORT_DIR
 from config.path_manager import COCO_DATALOAD_DIR
@@ -39,9 +35,6 @@ from data_loader_cpm.train_config import TrainConfig
 
 from data_loader_cpm.data_loader import DataLoader
 
-from models.hourglass_model import HourglassModelBuilder
-from models.vgg_19_model import VGG19_Model
-from models.hourglass_model_v2 import HourglassModelBuilderV2
 from models.conv_pose_machine import ConvolutionalPoseMachines
 
 from callbacks_model_cpm import get_check_pointer_callback
@@ -63,6 +56,22 @@ def main():
 
     args = parser.parse_args()
 
+    os.environ["TF_CONFIG"] = json.dumps({
+        'cluster': {
+            'worker': [
+                "192.168.2.166:32345",
+                "192.168.2.142:32345"
+            ]
+        },
+        'task': {
+            'type': 'worker',
+            'index': 0
+        }
+    })
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+
     train_config = TrainConfig()
     model_config = ModelConfig(setuplog_dir=train_config.setuplog_dir)
     preproc_config = PreprocessingConfig(
@@ -83,7 +92,7 @@ def main():
     # output_decoder_filters = "_{}".format(model_config.filter_name)
 
     output_name = current_time + output_model_name + \
-        output_learning_rate  # + output_decoder_filters
+                  output_learning_rate  # + output_decoder_filters
 
     model_path = os.path.join(output_path, "models")
     if not os.path.exists(model_path):
@@ -128,54 +137,56 @@ def main():
     # ================================================
     # ============== configure model =================
     # ================================================
-    if args.resume:
-        load_model_path = os.path.join(model_path, args.resume_model)
-        print('load_model path:', load_model_path)
-        model_builder = ConvolutionalPoseMachines()
-        model_builder.build_model()
-        model = model_builder.model
-        model.load_weights(load_model_path)
-    else:
-        model_builder = ConvolutionalPoseMachines()
-        model_builder.build_model()
-        model = model_builder.model
-        # model.summary()
+    with strategy.scope():
+        if args.resume:
+            load_model_path = os.path.join(model_path, args.resume_model)
+            print('load_model path:', load_model_path)
+            model_builder = ConvolutionalPoseMachines()
+            model_builder.build_model()
+            model = model_builder.model
+            model.load_weights(load_model_path)
+        else:
+            model_builder = ConvolutionalPoseMachines()
+            model_builder.build_model()
+            model = model_builder.model
+            # model.summary()
 
-    model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
-                  loss=tf.keras.losses.mean_squared_error)  # ,
-    #   metrics=['accuracy', 'mse'])  # ,
-    # metrics=['mse'])
-    # target_tensors=[targets])#tf.metrics.Accuracy
+        model.compile(optimizer=tf.keras.optimizers.Adam(0.001, epsilon=1e-8),  # 'adam',
+                      loss=tf.keras.losses.mean_squared_error)  # ,
+        #   metrics=['accuracy', 'mse'])  # ,
+        # metrics=['mse'])
+        # target_tensors=[targets])#tf.metrics.Accuracy
 
-    images, labels = dataloader_valid.get_images(22, batch_size=6)
+        images, labels = dataloader_valid.get_images(22, batch_size=6)
 
-    # --------------------------------------------------------------------------------------------------------------------
-    # output model file(.hdf5)
-    check_pointer_callback = get_check_pointer_callback(
-        model_path=model_path, output_name=output_name)
+        # --------------------------------------------------------------------------------------------------------------------
+        # output model file(.hdf5)
+        check_pointer_callback = get_check_pointer_callback(
+            model_path=model_path, output_name=output_name)
 
-    # output tensorboard log
-    tensorboard_callback = get_tensorboard_callback(
-        log_path=log_path, output_name=output_name)
+        # output tensorboard log
+        tensorboard_callback = get_tensorboard_callback(
+            log_path=log_path, output_name=output_name)
 
-    # tensorboard image
-    img_tensorboard_callback = get_img_tensorboard_callback(log_path=log_path, output_name=output_name, inputs=images,
-                                                            labels=labels, model=model)
-    # --------------------------------------------------------------------------------------------------------------------
+        # tensorboard image
+        img_tensorboard_callback = get_img_tensorboard_callback(log_path=log_path, output_name=output_name,
+                                                                inputs=images,
+                                                                labels=labels, model=model)
+        # --------------------------------------------------------------------------------------------------------------------
 
-    # ================================================
-    # ==================== train! ====================
-    # ================================================
+        # ================================================
+        # ==================== train! ====================
+        # ================================================
 
-    model.fit(dataset_train,  # dataset_train_one_shot_iterator
-                        epochs=train_config.epochs,
-                        validation_steps=32,
-                        validation_data=dataset_valid,
-                        shuffle=True,
-                        callbacks=[
-                            check_pointer_callback,
-                            tensorboard_callback,
-                            img_tensorboard_callback])
+        model.fit(dataset_train,  # dataset_train_one_shot_iterator
+                  epochs=train_config.epochs,
+                  validation_steps=32,
+                  validation_data=dataset_valid,
+                  shuffle=True,
+                  callbacks=[
+                      check_pointer_callback,
+                      tensorboard_callback,
+                      img_tensorboard_callback])
 
 
 if __name__ == '__main__':
